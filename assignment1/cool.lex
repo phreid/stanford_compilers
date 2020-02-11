@@ -120,6 +120,7 @@ WHITESPACE = [\ \t]
 <YYINITIAL>"{"      {return new Symbol(TokenConstants.LBRACE);}
 <YYINITIAL>"}"      {return new Symbol(TokenConstants.RBRACE);}
 <YYINITIAL>"@"      {return new Symbol(TokenConstants.AT);}
+<YYINITIAL>"=>"     {return new Symbol(TokenConstants.DARROW);}
 
 <YYINITIAL>{CLASS}    {return new Symbol(TokenConstants.CLASS);}
 <YYINITIAL>{NOT}      {return new Symbol(TokenConstants.NOT);}
@@ -167,15 +168,29 @@ WHITESPACE = [\ \t]
   return new Symbol(TokenConstants.STR_CONST, entry);
 }
 
-<STRING>[^\n\r\"\\]+  {string_buf.append(yytext());}
-<STRING>\\t           {string_buf.append('\t');}
-<STRING>\\b           {string_buf.append('\b');}
-<STRING>\\n           {string_buf.append('\n');}
-<STRING>\\f           {string_buf.append('\f');}
+<STRING>[^\n\r\"\\]+ {string_buf.append(yytext());}
+<STRING>\\t          {string_buf.append('\t');}
+<STRING>\\b          {string_buf.append('\b');}
+<STRING>\\n          {string_buf.append('\n');}
+<STRING>\\\n         {string_buf.append('\n'); curr_lineno++;}
+<STRING>\\f          {string_buf.append('\f');}
+<STRING>\\\"         {string_buf.append("\"");}
+<STRING>\\           {string_buf.append('\\');}
+
+<STRING>\\.          
+{
+string_buf.append(yytext().charAt(yytext().length() - 1));
+}
 
 <STRING>\0
 {
-return new Symbol(TokenConstants.ERROR, "String contains null character");
+  return new Symbol(TokenConstants.ERROR, "String contains null character.");
+}
+
+<STRING>\\\0
+{
+  return new Symbol
+    (TokenConstants.ERROR, "String contains an escaped null character.");
 }           
 
 <STRING>\n
@@ -218,4 +233,4 @@ return new Symbol(TokenConstants.ERROR, "String contains null character");
 
 {WHITESPACE}       {}
 
-.                  { System.err.println("LEXER BUG - UNMATCHED: " + yytext()); }
+.                  { return new Symbol(TokenConstants.ERROR, yytext()); }
